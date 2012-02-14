@@ -1,0 +1,9 @@
+[submodule "bootstrap"]
+	path = bootstrap
+	url = git://github.com/twitter/bootstrap.git
+[submodule "handlebars.js"]
+	path = handlebars.js
+	url = git://github.com/wycats/handlebars.js.git
+[submodule "vendor/backbone.marionette"]
+	path = vendor/backbone.marionette
+	url = https://github.com/derickbailey/backbone.marionette
