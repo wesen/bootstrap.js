@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Bootstrap, from Twitter</title>
+    <title>Search Service Tool</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -44,12 +44,10 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">Project name</a>
+          <a class="brand" href="#">Search Service</a>
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="#">Home</a></li>
-              <li><a href="#about">About</a></li>
-              <li><a href="#contact">Contact</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -57,18 +55,62 @@
     </script>
     
     <script id="main-template" type="text/x-handlebars-template">
-      <h1>Bootstrap starter template</h1>
-      <p>Use this document as a way to quick start any new project.<br> All you get is this message and a barebones HTML document.</p>
+      <div class="row show-grid">
+        <div class="span4">
+          <div id="searchView">
+          </div>
+          <div id="filterView">
+          </div>
+        </div>
+        <div id="resultView" class="span8">
+        </div>
+      </div>
+    </script>
+    
+    <script id="search-template" type="text/x-handlebars-template">
+      <form class="form-search">
+        <fieldset>
+          <div class="control-group">
+            <input placeholder="Search..." type="text" name="search_string" class="search-query input-append"
+                value="{{search_string}}"/>
+          </div>
+          <div>
+            <button type="submit" style="width: 100%" name="search" class="btn-large btn btn-primary"
+                    data-loading-text="Searching..."
+                >Search</button>
+          </div>
+          <hr/>
+          <div>
+            <div class="control-group">
+              <div class="btn-group"  data-toggle="buttons-checkbox">
+                <button rel="tooltip" title="search for products"
+                        name="output_products" class="btn btn-primary {{#if output_offers}}active{{/if}}">products</button>
+                <button rel="tooltip" title="search for offers"
+                        name="output_offers" class="btn btn-primary {{#if output_offers}}active{{/if}}">offers</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="btn-group" data-toggle="buttons-checkbox">
+                <button rel="tooltip" title="das hab ich immer noch nicht gerafft"
+                        name="collect_filters" class="btn btn-primary {{#if collect_filters}}active{{/if}}">filters
+                </button>
+                <button rel="tooltip" title="das auch nicht"
+                        name="collect_filter_keys" class="btn btn-primary {{#if collect_filter_keys}}active{{/if}}">filter keys
+                </button>
+                <button rel="tooltip" title="enable shop diversification"
+                        name="shopdiv" class="btn btn-primary {{#if shopdiv}}active{{/if}}">shopdiv
+                </button>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+      </form>
     </script>
 
-    <script id="contact-template" type="text/x-handlebars-template">
-      <h1>Bootstrap Contact</h1>
-      <p>Contact us.</p>
+    <script id="filters-template" type="text/x-handlebars-template">
     </script>
 
-    <script id="about-template" type="text/x-handlebars-template">
-      <h1>About BootStrap</h1>
-      <p>We are so cool!</p>
+    <script id="results-template" type="text/x-handlebars-template">
     </script>
 
     <!-- Le javascript
