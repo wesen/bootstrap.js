@@ -100,7 +100,9 @@ var HandlebarsView = Backbone.Marionette.ItemView.extend(
  ***************************************************************************/
 
 var App = new Backbone.Marionette.Application(/** @lends App */{
-  searcherUrl: "http://localhost:8080/search-service/Searcherv1",
+//  searcherUrl: "http://localhost:8080/search-service/Searcherv1",
+//  searcherUrl: "http://searcher-00.toi.api.maastricht:8080/search-service/Searcherv1"
+  searcherUrl: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1"
 });
 
 
@@ -182,6 +184,7 @@ var SearchQuery = Backbone.Model.extend( /** @lends SearchQuery */{
 
   search: function (filters) {
     App.vent.trigger("search:start", this);
+
     return $.get(App.searcherUrl, this.paramString(filters))
     .then(function (data) {
       App.vent.trigger("search:success", data, this);
@@ -198,7 +201,29 @@ var SearchQuery = Backbone.Model.extend( /** @lends SearchQuery */{
 App.searchQuery = new SearchQuery();
 
 var SearchResults = Backbone.Model.extend({
+  toJSON: function () {
+    var json = Backbone.Model.prototype.toJSON.apply(this, arguments);
+
+    var results = _.map(this.get("hits"),
+    function (hit) {
+      return {
+        type: SearchResults.TYPES[hit[0]],
+        id: hit[1],
+        score: hit[2]
+      };
+    });
+    json.hits = results;
+    return json;
+  }
 });
+
+SearchResults.TYPES = [
+  "offer",
+  "product",
+  "category",
+  "theme page",
+  "product variant"
+];
 
 App.searchResults = new SearchResults();
 
@@ -338,10 +363,6 @@ var MainView = HandlebarsView.extend({
 
   onShow: function () {
     App.addRegions({
-      searchRegion: "#searchView",
-      filterRegion: "#filterView",
-      resultRegion: "#resultView",
-      filterListRegion: "#filterListView"
     });
 
     App.searchRegion.show(App.Views.searchView);
@@ -526,7 +547,8 @@ var ResultsView = HandlebarsView.extend({
 
 var AppRouter = Backbone.Marionette.AppRouter.extend({
   appRoutes: {
-    "":        "showMain"
+    "":        "showMain",
+    "diff":    "showDiff"
   }
 });
 
@@ -559,7 +581,12 @@ App.Controllers.searchController = {
 
 App.addRegions({
   navigationRegion: ".navbar",
-  mainRegion: "#main"
+  mainRegion: "#main",
+  searchRegion: "#searchView",
+  filterRegion: "#filterView",
+  resultRegion: "#resultView",
+  jsonDiffRegion: "#jsonDiffView",
+  filterListRegion: "#filterListView"
 });
 
 App.Controllers.routeController = {

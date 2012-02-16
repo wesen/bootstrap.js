@@ -152,11 +152,35 @@
     <script id="results-template" type="text/x-handlebars-template">
       <div class="row">
         <div class="span8">
+          <div class="page-header">
+            <h1>Results</h1>
+          </div>
+
           {{#if total_hits}}
           Total hits: {{total_hits}}
+          <table class="table table-bordered table-striped">
+            <thead>
+            <tr>
+              <th>type</th>
+              <th>id</th>
+              <th>score</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{#each hits}}
+            <tr>
+              <td>{{type}}</td>
+              <td>{{id}}</td>
+              <td>{{score}}</td>
+
+            </tr>
+            {{/each}}
+            </tbody>
+          </table>
           {{else}}
           No search hits.
           {{/if}}
+
         </div>
       </div>
     </script>
