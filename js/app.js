@@ -99,8 +99,8 @@ var HandlebarsView = Backbone.Marionette.ItemView.extend(
  *
  ***************************************************************************/
 
-var App = new Backbone.Marionette.Application({
-  searcherUrl: "http://localhost:8080/search-service/Searcherv1"
+var App = new Backbone.Marionette.Application(/** @lends App */{
+  searcherUrl: "http://localhost:8080/search-service/Searcherv1",
 });
 
 
@@ -185,8 +185,6 @@ var SearchQuery = Backbone.Model.extend( /** @lends SearchQuery */{
     return $.get(App.searcherUrl, this.paramString(filters))
     .then(function (data) {
       App.vent.trigger("search:success", data, this);
-      console.log("got data");
-      console.log(data);
     })
     .fail(function (error) {
       App.vent.trigger("search:fail", error, this);
@@ -349,11 +347,6 @@ var FilterView = HandlebarsView.extend({
 
   initialize: function () {
     _.bindAll(this);
-    App.vent.bind("search:success", this.onSearchSuccess);
-  },
-
-  onSearchSuccess: function (data, query) {
-    this.model.setResultFilters(data);
   },
 
   serializeData: function () {
@@ -387,18 +380,27 @@ var FilterView = HandlebarsView.extend({
     var $target = $(ev.target);
     var filterId = $target.data("filter-id");
     var valueId = "" + $target.data("value-id");
-    if (this.model.toggleFilter(filterId, valueId)) {
-      $target.parent("li").addClass("active");
-    } else {
-      $target.parent("li").removeClass("active");
+
+    var prev = this.model.isFilterSelected(filterId, valueId);
+
+    if (!ev.shiftKey) {
+      this.model.unselectFiltersWithKey(filterId);
     }
+
+    if (prev) {
+      this.model.unselectFilter(filterId, valueId);
+      $target.parent("li").removeClass("active");
+    } else {
+      this.model.selectFilter(filterId, valueId);
+      $target.parent("li").addClass("active");
+    }
+
     App.searchQuery.search(this.model.get("selectedFilters"));
     return false;
   },
 
   onRender: function () {
   }
-
 });
 
 var ResultsView = HandlebarsView.extend({
@@ -407,11 +409,9 @@ var ResultsView = HandlebarsView.extend({
   initialize: function () {
     _.bindAll(this);
 
-    App.vent.bind("search:fail", this.onSearchError)
-    .bind("search:success", this.onSearchSuccess);
   },
 
-  onSearchError: function (_error, query) {
+  popupSearchError: function (_error, query) {
     this.popupAlert({
       message: "Error " + _error.status + ": " + _error.statusText,
       title: "Search error",
@@ -419,8 +419,8 @@ var ResultsView = HandlebarsView.extend({
     });
   },
 
-  onSearchSuccess: function (data, query) {
-    this.popupAlert({
+  popupSearchResults: function (data, query) {
+      this.popupAlert({
       message: "Got " + data.total_hits + " results",
       title: "Search success",
       type: "success",
@@ -429,7 +429,6 @@ var ResultsView = HandlebarsView.extend({
       el: "#resultView",
       after: true
     });
-    this.model.set(data);
   },
 
   onRender: function () {
@@ -450,7 +449,22 @@ App.Views = {
   navigationView: new NavigationView()
 };
 
+App.Controllers = {
+};
+
 App.Routers = {
+};
+
+App.Controllers.searchController = {
+  onSearchSuccess: function (data, query) {
+    App.Views.resultView.popupSearchResults(data, query);
+    App.searchResults.set(data);
+    App.searchFilters.setResultFilters(data);
+  },
+
+  onSearchError: function (error, query) {
+    App.Views.resultView.popupSearchError(error, query);
+  }
 };
 
 App.addRegions({
@@ -458,7 +472,7 @@ App.addRegions({
   mainRegion: "#main"
 });
 
-var AppController = {
+App.Controllers.routeController = {
   showMain: function () {
     App.mainRegion.show(App.Views.mainView);
   }
@@ -466,8 +480,11 @@ var AppController = {
 
 App.addInitializer(function (options) {
   this.navigationRegion.show(this.Views.navigationView);
+  App.vent.bind("search:success", App.Controllers.searchController.onSearchSuccess)
+  .bind("search:fail", App.Controllers.searchController.onSearchError);
+
   /* create router */
-  this.Routers.appRouter = new AppRouter({controller: AppController});
+  this.Routers.appRouter = new AppRouter({controller: App.Controllers.routeController});
   if (Backbone.history) {
     Backbone.history.start();
   }
