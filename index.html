@@ -70,7 +70,15 @@
           <div id="filterView">
           </div>
         </div>
-        <div id="resultView" class="span8">
+        <div class="span8">
+          <div class="row">
+            <div id="filterListView" class="span8">
+            </div>
+          </div>
+          <div class="row">
+            <div id="resultView" class="span8">
+            </div>
+          </div>
         </div>
       </div>
     </script>
@@ -111,8 +119,20 @@
           </div>
         </fieldset>
       </form>
+      <div class="progress progress-striped">
+        <div class="bar"
+             style="width: 0%;"></div>
+      </div>
     </script>
 
+    <script id="filter-list-template" type="text/x-handlebars-template">
+      <div class="btn-group">
+      {{#each selectedFilters}}
+      <a class="filter btn" style="margin-bottom: 5px" data-filter-id="{{key}}" data-value-id="{{value}}">{{key}}: {{value}}</a>
+      {{/each}}
+      </div>
+    </script>
+    
     <script id="filters-template" type="text/x-handlebars-template">
       <h2>Filters</h2>
       <ul class="nav nav-list">

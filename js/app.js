@@ -213,29 +213,48 @@ var SearchFilters = Backbone.Model.extend({
   },
 
   selectFilter: function (key, value, options) {
+    options = options || {};
     var filters = this.get("selectedFilters");
     if (filters[key]) {
       filters[key].push(value);
     } else {
       filters[key] = [value];
     }
-    this.set({selectedFilters: filters}, options);
+    this.set({selectedFilters: filters}, {silent: true});
+    if (!options.silent) {
+      this.trigger("change:selectedFilters");
+      this.trigger("change");
+    }
+
     return this;
   },
 
   unselectFilter: function (key, value, options) {
+    options = options || {};
     var filters = this.get("selectedFilters");
     if (filters[key]) {
       filters[key] = _.without(filters[key], value);
     }
-    this.set({selectedFilters: filters}, options);
+    this.set({selectedFilters: filters}, {silent: true});
+    if (!options.silent) {
+      this.trigger("change:selectedFilters");
+      this.trigger("change");
+    }
+
     return this;
   },
 
   unselectFiltersWithKey: function (key, options) {
+    options = options || {};
     var filters = this.get("selectedFilters");
     delete filters[key];
-    this.set({selectedFilters: filters}, options);
+    this.set({selectedFilters: filters}, {silent: true});
+
+    if (!options.silent) {
+      this.trigger("change:selectedFilters");
+      this.trigger("change");
+    }
+
     return this;
   },
 
@@ -255,6 +274,54 @@ var SearchFilters = Backbone.Model.extend({
 
   setResultFilters: function (result, options) {
     this.set({filters: result.filters}, options);
+  },
+
+  toFilterListJSON: function () {
+    var that = this;
+    var data = [];
+
+    _.each(this.attributes.selectedFilters, function (values, key) {
+      _.each(values, function (value) {
+        data.push({key: key, value: value});
+      });
+    });
+    return data;
+  },
+
+  toExplicitJSON: function (cutoff) {
+    cutoff = cutoff || 10;
+    var that = this;
+    var data;
+    data = _.map(this.attributes.filters, function (counts, key) {
+      var totalCount = 0;
+      var values = _.sortBy(_.map(counts, function (count, value) {
+        value = "" + value;
+        totalCount += count;
+        return {
+          value:    value,
+          count:    count,
+          selected: that.isFilterSelected(key, value)
+        };
+      }), function (elt) {
+        return -elt.count;
+      });
+
+      return {key:  key,
+        count:      totalCount,
+        values:     _.first(values, cutoff),
+        truncated: values.length > cutoff,
+        valueCount: values.length,
+        singleValue: values.length === 1
+      };
+    });
+
+    return {
+      filters: _.sortBy(data, function (x) {
+        return -x.count;
+      }),
+
+      selectedFilters: this.toFilterListJSON()
+    };
   }
 });
 
@@ -273,11 +340,13 @@ var MainView = HandlebarsView.extend({
     App.addRegions({
       searchRegion: "#searchView",
       filterRegion: "#filterView",
-      resultRegion: "#resultView"
+      resultRegion: "#resultView",
+      filterListRegion: "#filterListView"
     });
 
     App.searchRegion.show(App.Views.searchView);
     App.filterRegion.show(App.Views.filterView);
+    App.filterListRegion.show(App.Views.filterListView);
     App.resultRegion.show(App.Views.resultView);
   }
 });
@@ -291,10 +360,22 @@ var SearchView = HandlebarsView.extend({
 
   initialize: function () {
     var that = this;
+    var timeout = undefined;
     App.vent.bind("search:start", function () {
+      clearTimeout(timeout);
+      var $bar = that.$(".bar");
+      $bar.width("50%").addClass("active");
+      $bar.parent().addClass("progress-striped").addClass("progress-info");
       that.$("[name=search]").button("loading");
     })
     .bind("search:finish", function () {
+      var $bar = that.$(".bar");
+      $bar.width("100%").removeClass("active");
+      $bar.parent().removeClass("progress-striped").addClass("progress-info");
+      timeout = setTimeout(function () {
+        $bar.width("0%");
+      }, 2000);
+
       that.$("[name=search]").button("reset");
     });
   },
@@ -350,30 +431,7 @@ var FilterView = HandlebarsView.extend({
   },
 
   serializeData: function () {
-    var that = this;
-    var data = [];
-    data = _.map(this.model.get("filters"), function (counts, key) {
-      var totalCount = 0;
-      var values = _.sortBy(_.map(counts, function (count, value) {
-        value = "" + value;
-        totalCount += count;
-        return {
-          value: value,
-          count: count,
-          selected: that.model.isFilterSelected(key, value)
-        };
-      }), function (elt) { return -elt.count; });
-
-      return {key: key,
-        count: totalCount,
-        values: _.first(values, that.cutoff),
-        truncated: values.length > that.cutoff,
-        valueCount: values.length,
-        singleValue: values.length === 1
-        };
-      }
-    );
-    return {filters: _.sortBy(data, function (x) { return -x.count; })};
+    return this.model.toExplicitJSON(this.cutoff);
   },
 
   toggleFilter: function (ev) {
@@ -400,6 +458,37 @@ var FilterView = HandlebarsView.extend({
   },
 
   onRender: function () {
+    this.delegateEvents();
+  }
+});
+
+var FilterListView = HandlebarsView.extend({
+  template: "#filter-list-template",
+
+  events: {
+    "click .filter": "deleteFilter"
+  },
+
+  initialize: function () {
+    _.bindAll(this, "render", "deleteFilter");
+    this.model.unbind("change", this.render);
+    this.model.bind("change:selectedFilters", this.render);
+  },
+
+  deleteFilter: function (ev) {
+    var $target = $(ev.target);
+    var filterId = $target.data("filter-id");
+    var valueId = "" + $target.data("value-id");
+    this.model.unselectFilter(filterId, valueId);
+    App.searchQuery.search(this.model.get("selectedFilters"));
+  },
+
+  serializeData: function () {
+    return this.model.toExplicitJSON();
+  },
+
+  onRender: function () {
+    this.delegateEvents();
   }
 });
 
@@ -446,6 +535,7 @@ App.Views = {
   searchView: new SearchView({model: App.searchQuery}),
   filterView: new FilterView({model: App.searchFilters}),
   resultView: new ResultsView({model: App.searchResults}),
+  filterListView: new FilterListView({model: App.searchFilters}),
   navigationView: new NavigationView()
 };
 
