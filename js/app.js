@@ -17,13 +17,35 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
     },
     Views: {},
     Routers: {},
-    Controllers: {}
+    Controllers: {},
+    Config: {}
   });
+
+
+  App.Config.Searchers = [
+    { url: "http://localhost:8080/search-service/Searcherv1",
+      name: "localhost"
+    },
+    { url: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1",
+      name: "searcher-00.vps"
+    },
+    { url: "http://motest01.test.solute.ka:8080/search-service-trunk/Searcherv1",
+      name: "motest trunk"
+    },
+    { url: "http://motest01.test.solute.ka:8080/search-service-staging/Searcherv1",
+      name: "motest staging"
+    },
+    { url: "http://searcher-00.toi.api.maastricht:8080/search-service/Searcherv1",
+      name: "searcher-00.toi"
+    }
+];
+
+
 
   App.Classes.Models = searchModels;
   App.Classes.Views  = searchViews;
 
-  App.searchQuery = new App.Classes.Models.SearchQuery({app: App});
+  App.searchQuery = new App.Classes.Models.SearchQuery({app: App, searcherUrl: App.Config.Searchers[0].url});
   App.searchResults = new App.Classes.Models.SearchResults();
   App.searchFilters = new App.Classes.Models.SearchFilters();
 
@@ -49,7 +71,7 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
     },
 
     initialize: function () {
-      this.searchView =     new App.Classes.Views.SearchView({model: App.searchQuery, app: App});
+      this.searchView =     new App.Classes.Views.SearchView({model: App.searchQuery, app: App, searchers: App.Config.Searchers});
       this.filterView =     new App.Classes.Views.FilterView({model: App.searchFilters, app: App});
       this.resultView =     new App.Classes.Views.ResultsView({model: App.searchResults, app: App});
       this.filterListView = new App.Classes.Views.FilterListView({model: App.searchFilters, app: App});

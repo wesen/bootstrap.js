@@ -4,8 +4,6 @@
     <meta charset="utf-8">
     <title>Search Service Tool</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
 
     <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
     <!--[if lt IE 9]>
@@ -20,12 +18,6 @@
       }
     </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
-
-    <!-- Le fav and touch icons -->
-    <link rel="shortcut icon" href="img/favicon.ico">
-    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="img/apple-touch-icon-72x72.png">
-    <link rel="apple-touch-icon" sizes="114x114" href="img/apple-touch-icon-114x114.png">
   </head>
 
   <body>
@@ -87,32 +79,52 @@
       <form class="form-search well">
         <fieldset>
           <div class="control-group">
-            <input placeholder="Search..." type="text" name="search_string" class="search-query input-medium" value="{{search_string}}"/>
+            <input placeholder="Search..." type="text" name="search_string" class="search-query input-large" value="{{search_string}}"/>
+          </div>
+          <div class="control-group">
+            <select name="searcher">
+              {{#each searchers}}
+              <option data-searcher-url="{{url}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="control-group">
+            <input type="submit" style="width: 240px" class="btn btn-primary" name="search" value="Search!" data-loading-text="Searching..."/>
           </div>
           <hr/>
           <div>
             <div class="control-group">
               <div class="btn-group"  data-toggle="buttons-checkbox">
                 <a rel="tooltip" title="search for products"
-                        name="output_products" class="btn btn-primary {{#if output_offers}}active{{/if}}">products</a>
+                        name="output_product" class="btn {{#if output_product}}active{{/if}}">product</a>
                 <a rel="tooltip" title="search for offers"
-                        name="output_offers" class="btn btn-primary {{#if output_offers}}active{{/if}}">offers</a>
+                        name="output_offer" class="btn {{#if output_offer}}active{{/if}}">offer</a>
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="btn-group"  data-toggle="buttons-checkbox">
+                <a rel="tooltip" title="search for categories"
+                   name="output_category" class="btn {{#if output_category}}active{{/if}}">category</a>
+                <a rel="tooltip" title="search for theme pages"
+                   name="output_theme_page" class="btn {{#if output_theme_page}}active{{/if}}">theme page</a>
+                <a rel="tooltip" title="search for product variants"
+                   name="output_product_variant" class="btn {{#if output_product_variant}}active{{/if}}">product variant</a>
               </div>
             </div>
             <div class="control-group">
               <div class="btn-group" data-toggle="buttons-checkbox">
                 <a rel="tooltip" title="das hab ich immer noch nicht gerafft"
-                        name="collect_filters" class="btn btn-primary {{#if collect_filters}}active{{/if}}">filters
+                        name="collect_filters" class="btn {{#if collect_filters}}active{{/if}}">filters
                 </a>
                 <a rel="tooltip" title="das auch nicht"
-                        name="collect_filter_keys" class="btn btn-primary {{#if collect_filter_keys}}active{{/if}}">filter keys
+                        name="collect_filter_keys" class="btn {{#if collect_filter_keys}}active{{/if}}">filter keys
                 </a>
               </div>
             </div>
             <div class="control-group">
               <div class="btn-group" data-toggle="buttons-checkbox">
                 <a rel="tooltip" title="enable shop diversification"
-                        name="shopdiv" class="btn btn-primary {{#if shopdiv}}active{{/if}}">shopdiv
+                        name="shopdiv" class="btn {{#if shopdiv}}active{{/if}}">shopdiv
                 </a>
               </div>
             </div>

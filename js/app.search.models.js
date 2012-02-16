@@ -12,16 +12,19 @@ define(function(require, exports, module) {
    */
   module.exports.SearchQuery= Backbone.Model.extend(/** @lends SearchQuery */{
     defaults: {
-      output_offers:       true,
-      output_products:     true,
-      shopdiv:             false,
-      collect_filters:     false,
-      collect_filter_keys: false,
-      search_string:       "",
-      page_size:           17,
-      page_no:             0,
-      sort:                "rating",
-      filters:             [],
+      output_offer:       true,
+      output_product:         true,
+      output_category:       true,
+      output_theme_page:      true,
+      output_product_variant: true,
+      shopdiv:                 false,
+      collect_filters:         false,
+      collect_filter_keys:     false,
+      search_string:           "",
+      page_size:               17,
+      page_no:                 0,
+      sort:                    "rating",
+      filters:                 [],
       searcherUrl: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1"
     },
 
@@ -29,6 +32,8 @@ define(function(require, exports, module) {
      * @return {string} a GET request string
      */
     paramString: function (filters) {
+      var that = this;
+
       var params = {
         searchstring: this.attributes.search_string,
         page_size:    this.attributes.page_size,
@@ -50,12 +55,13 @@ define(function(require, exports, module) {
       }
 
       var outputs = [];
-      if (this.attributes.output_offers) {
-        outputs.push("offer");
-      }
-      if (this.attributes.output_products) {
-        outputs.push("product");
-      }
+      _.each(["offer", "product", "theme_page", "product_variant", "category"],
+      function (type) {
+        if (that.attributes["output_" + type]) {
+          outputs.push(type);
+        }
+      });
+
       params.output = outputs.join(",");
       var str = $.param(params);
 
@@ -78,7 +84,10 @@ define(function(require, exports, module) {
       var that = this;
       this.trigger("search:start", this);
 
-      return $.get(this.attributes.searcherUrl, this.paramString(filters)).then(
+      var params = this.paramString(filters);
+      console.log("searching on " + this.attributes.searcherUrl + " with params " + params);
+
+      return $.get(this.attributes.searcherUrl, params).then(
       function (data) {
         that.trigger("search:success", data, this);
       }).fail(
@@ -221,6 +230,9 @@ define(function(require, exports, module) {
           valueCount: values.length,
           singleValue: values.length === 1
         };
+      });
+      data = _.filter(data, function (elt) {
+        return elt.key !== "price";
       });
 
       return {

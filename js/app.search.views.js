@@ -9,6 +9,8 @@ define(function(require, exports, module) {
     template: "#search-template",
 
     initialize: function () {
+      _.bindAll();
+
       var that = this;
       var timeout = undefined;
 
@@ -17,12 +19,12 @@ define(function(require, exports, module) {
         clearTimeout(timeout);
         var $bar = that.$(".bar");
         $bar.width("50%").addClass("active");
-        $bar.parent().addClass("progress-striped").addClass("progress-info");
+        $bar.parent().addClass("progress-striped active progress-info");
         that.$("[name=search]").button("loading");
       }).bind("search:finish", function () {
         var $bar = that.$(".bar");
         $bar.width("100%").removeClass("active");
-        $bar.parent().removeClass("progress-striped").addClass("progress-info");
+        $bar.parent().removeClass("progress-striped active").addClass("progress-info");
         timeout = setTimeout(function () {
           $bar.width("0%");
         }, 2000);
@@ -33,7 +35,25 @@ define(function(require, exports, module) {
 
     events: {
       "click [name=search]": "search",
-      "submit form":         "search"
+      "submit form":         "search",
+      "change [name=searcher]": "setSearcherUrl"
+    },
+
+    setSearcherUrl: function (ev) {
+      var url = $(ev.target).find(":selected").data("searcher-url");
+      this.model.set({searcherUrl: url});
+      return false;
+    },
+
+    serializeData: function () {
+      var json = this.model.toJSON();
+      json.searchers = _.map(this.options.searchers, function (searcher) {
+        var res = _.clone(searcher);
+        res.selected = json.searcherUrl === res.url;
+        return res;
+      });
+
+      return json;
     },
 
     search: function () {
@@ -47,6 +67,8 @@ define(function(require, exports, module) {
           data[$btn.attr("name")] = $btn.hasClass("active");
         }
       });
+
+      data.searcherUrl = this.$("option[selected=selected]").data("searcher-url");
       this.model.set(data);
 
       this.app.searchFilters.resetFilters();
