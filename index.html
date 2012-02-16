@@ -33,8 +33,16 @@
     <div class="navbar navbar-fixed-top">
     </div>
 
-    <div class="container">
+    <div class="container" id="main">
     </div>
+
+    <script id="alert-template" type="text/x-handlebars-template">
+      <div class="alert {{class}} {{#if type}}alert-{{type}}{{/if}}">
+        {{#unless popup}}<a class="close" data-dismiss="alert">×</a>{{/unless}}
+        {{#if title}}<strong>{{title}}</strong>{{/if}}
+        {{message}}
+      </div>
+    </script>
 
     <script id="navigation-template" type="text/x-handlebars-template">
       <div class="navbar-inner">
@@ -68,38 +76,36 @@
     </script>
     
     <script id="search-template" type="text/x-handlebars-template">
-      <form class="form-search">
+      <form class="form-search well">
         <fieldset>
           <div class="control-group">
-            <input placeholder="Search..." type="text" name="search_string" class="search-query input-append"
-                value="{{search_string}}"/>
-          </div>
-          <div>
-            <button type="submit" style="width: 100%" name="search" class="btn-large btn btn-primary"
-                    data-loading-text="Searching..."
-                >Search</button>
+            <input placeholder="Search..." type="text" name="search_string" class="search-query input-medium" value="{{search_string}}"/>
           </div>
           <hr/>
           <div>
             <div class="control-group">
               <div class="btn-group"  data-toggle="buttons-checkbox">
-                <button rel="tooltip" title="search for products"
-                        name="output_products" class="btn btn-primary {{#if output_offers}}active{{/if}}">products</button>
-                <button rel="tooltip" title="search for offers"
-                        name="output_offers" class="btn btn-primary {{#if output_offers}}active{{/if}}">offers</button>
+                <a rel="tooltip" title="search for products"
+                        name="output_products" class="btn btn-primary {{#if output_offers}}active{{/if}}">products</a>
+                <a rel="tooltip" title="search for offers"
+                        name="output_offers" class="btn btn-primary {{#if output_offers}}active{{/if}}">offers</a>
               </div>
             </div>
             <div class="control-group">
               <div class="btn-group" data-toggle="buttons-checkbox">
-                <button rel="tooltip" title="das hab ich immer noch nicht gerafft"
+                <a rel="tooltip" title="das hab ich immer noch nicht gerafft"
                         name="collect_filters" class="btn btn-primary {{#if collect_filters}}active{{/if}}">filters
-                </button>
-                <button rel="tooltip" title="das auch nicht"
+                </a>
+                <a rel="tooltip" title="das auch nicht"
                         name="collect_filter_keys" class="btn btn-primary {{#if collect_filter_keys}}active{{/if}}">filter keys
-                </button>
-                <button rel="tooltip" title="enable shop diversification"
+                </a>
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="btn-group" data-toggle="buttons-checkbox">
+                <a rel="tooltip" title="enable shop diversification"
                         name="shopdiv" class="btn btn-primary {{#if shopdiv}}active{{/if}}">shopdiv
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -108,9 +114,31 @@
     </script>
 
     <script id="filters-template" type="text/x-handlebars-template">
+      <h2>Filters</h2>
+      <ul class="nav nav-list">
+      {{#each filters}}
+        <li class="nav-header">{{key}} ({{count}})</li>
+        {{#each values}}
+        <li {{#if selected}}class="active"{{/if}}><a data-filter-id="{{../key}}" data-value-id="{{value}}" class="filter" href="#">{{value}}
+        ({{count}})</a></li>
+        {{/each}}
+        {{#if truncated}}
+        <li>...</li>
+        {{/if}}
+      {{/each}}
+      </ul>
     </script>
 
     <script id="results-template" type="text/x-handlebars-template">
+      <div class="row">
+        <div class="span8">
+          {{#if total_hits}}
+          Total hits: {{total_hits}}
+          {{else}}
+          No search hits.
+          {{/if}}
+        </div>
+      </div>
     </script>
 
     <!-- Le javascript
