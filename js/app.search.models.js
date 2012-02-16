@@ -21,7 +21,8 @@ define(function(require, exports, module) {
       page_size:           17,
       page_no:             0,
       sort:                "rating",
-      filters:             []
+      filters:             [],
+      searcherUrl: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1"
     },
 
     /**
@@ -74,18 +75,17 @@ define(function(require, exports, module) {
     },
 
     search: function (filters) {
-      var App = require("app");
+      var that = this;
+      this.trigger("search:start", this);
 
-      App.vent.trigger("search:start", this);
-
-      return $.get(App.searcherUrl, this.paramString(filters)).then(
+      return $.get(this.attributes.searcherUrl, this.paramString(filters)).then(
       function (data) {
-        App.vent.trigger("search:success", data, this);
+        that.trigger("search:success", data, this);
       }).fail(
       function (error) {
-        App.vent.trigger("search:fail", error, this);
+        that.trigger("search:fail", error, this);
       }).always(function () {
-        App.vent.trigger("search:finish", this);
+        that.trigger("search:finish", this);
       });
     }
   });

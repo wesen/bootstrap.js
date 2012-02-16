@@ -8,12 +8,9 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
    ***************************************************************************/
 
   /**
-   * @extends Backbone.Marionette.Application
+   * @type Backbone.Marionette.Application
    */
   var App = new Backbone.Marionette.Application(/** @lends App */{
-//  searcherUrl: "http://localhost:8080/search-service/Searcherv1",
-//  searcherUrl: "http://searcher-00.toi.api.maastricht:8080/search-service/Searcherv1"
-    searcherUrl: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1",
     Classes: {
       Models: {},
       Views: {}
@@ -37,53 +34,67 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
     }
   });
 
-  App.Classes.Views.MainView = HandlebarsView.extend({
-    template: "#main-template",
-
-    onShow: function () {
-      /** @type Backbone.Marionette.Application */
-      var App = require("app");
-      App.addRegions({
-      });
-
-      App.searchRegion.show(App.Views.searchView);
-      App.filterRegion.show(App.Views.filterView);
-      App.filterListRegion.show(App.Views.filterListView);
-      App.resultRegion.show(App.Views.resultView);
-    }
-  });
-
   App.Classes.Views.NavigationView = HandlebarsView.extend({
     template: "#navigation-template"
   });
 
-  App.Views.mainView = new App.Classes.Views.MainView();
-  App.Views.searchView =     new App.Classes.Views.SearchView({model: App.searchQuery, app: App});
-  App.Views.filterView =     new App.Classes.Views.FilterView({model: App.searchFilters, app: App});
-  App.Views.resultView =     new App.Classes.Views.ResultsView({model: App.searchResults, app: App});
-  App.Views.filterListView = new App.Classes.Views.FilterListView({model: App.searchFilters, app: App});
-  App.Views.navigationView = new App.Classes.Views.NavigationView();
+  App.Classes.Views.MainView = HandlebarsView.extend({
+    template: "#main-template",
 
-  App.Controllers.searchController = {
-    onSearchSuccess: function (data, query) {
-      App.Views.resultView.popupSearchResults(data, query);
-      App.searchResults.set(data);
-      App.searchFilters.setResultFilters(data);
+    subRegions: {
+      searchRegion:     "#searchView",
+      filterRegion:     "#filterView",
+      resultRegion:     "#resultView",
+      filterListRegion: "#filterListView"
     },
 
-    onSearchError: function (error, query) {
-      App.Views.resultView.popupSearchError(error, query);
+    initialize: function () {
+      this.searchView =     new App.Classes.Views.SearchView({model: App.searchQuery, app: App});
+      this.filterView =     new App.Classes.Views.FilterView({model: App.searchFilters, app: App});
+      this.resultView =     new App.Classes.Views.ResultsView({model: App.searchResults, app: App});
+      this.filterListView = new App.Classes.Views.FilterListView({model: App.searchFilters, app: App});
+
+      this.controller = _.extend({
+        onSearchSuccess: function (data, query) {
+          this.resultView.popupSearchResults(data, query);
+          App.searchResults.set(data);
+          App.searchFilters.setResultFilters(data);
+        },
+
+        onSearchFail: function (error, query) {
+          this.resultView.popupSearchError(error, query);
+        }
+      }, Backbone.Marionette.BindTo);
+    },
+
+    onShow: function () {
+      App.addRegions(this.subRegions);
+
+      App.searchRegion.show(this.searchView);
+      App.filterRegion.show(this.filterView);
+      App.filterListRegion.show(this.filterListView);
+      App.resultRegion.show(this.resultView);
+
+      this.controller.bindTo(App.vent, "search:success", this.controller.onSearchSuccess, this);
+      this.controller.bindTo(App.vent, "search:fail", this.controller.onSearchFail, this);
+    },
+
+    onClose: function () {
+      _.each(this.subRegions, function (v, k) {
+        App[k].close();
+      });
+
+      this.controller.unbindAll();
     }
-  };
+  });
+
+  App.Views.mainView = new App.Classes.Views.MainView();
+  App.Views.navigationView = new App.Classes.Views.NavigationView();
 
   App.addRegions({
     navigationRegion: ".navbar",
     mainRegion:       "#main",
-    searchRegion:     "#searchView",
-    filterRegion:     "#filterView",
-    resultRegion:     "#resultView",
-    jsonDiffRegion:   "#jsonDiffView",
-    filterListRegion: "#filterListView"
+    jsonDiffRegion:   "#jsonDiffView"
   });
 
   App.Controllers.routeController = {
@@ -94,7 +105,8 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
 
   App.addInitializer(function (options) {
     this.navigationRegion.show(this.Views.navigationView);
-    App.vent.bind("search:success", App.Controllers.searchController.onSearchSuccess).bind("search:fail", App.Controllers.searchController.onSearchError);
+
+    App.vent.proxy(App.searchQuery, "search:success", "search:fail", "search:start", "search:finish");
 
     /* create router */
     this.Routers.appRouter = new AppRouter({controller: App.Controllers.routeController});

@@ -13,6 +13,23 @@ Backbone.Marionette.TemplateManager.loadTemplate = function (templateId, callbac
   callback.call(this, template);
 };
 
+var slice = Array.prototype.slice;
+
+Backbone.Marionette.BindTo.proxy = function (src) {
+  var events = slice.call(arguments, 1);
+
+  var that = this;
+  _.each(events, function (evt) {
+    src.bind(evt, function () {
+      var args = slice.call(arguments);
+      args.unshift(evt);
+      that.trigger.apply(that, args);
+    });
+  });
+
+  return this;
+};
+
 /**
  * @class HandleBarsView
  * @extends Backbone.Marionette.ItemView
