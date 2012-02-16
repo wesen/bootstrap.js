@@ -443,7 +443,8 @@ Backbone.Marionette = (function(Backbone, _, $){
     _.extend(this, options);
   };
 
-  _.extend(Marionette.Application.prototype, Backbone.Events, {
+  _.extend(Marionette.Application.prototype, Backbone.Events,
+  /** @lends Backbone.Marionette.Application */ {
     // Add an initializer that is either run at when the `start`
     // method is called, or run immediately if added after `start`
     // has already been called.
