@@ -1,4 +1,5 @@
-define(["backbone.bootstrap", "app.search.models", "app.search.views"], function (BootStrap, searchModels, searchViews) {
+define(["backbone.bootstrap", "app.search.mainView", "app.search.compare.views", "billiger-api"],
+function (BootStrap, SearchMainView, CompareViews, BilligerApi) {
   require("backbone.bootstrap");
 
   /***************************************************************************
@@ -25,31 +26,10 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
   App.Config.Searchers = [
     { url: "http://localhost:8080/search-service/Searcherv1",
       name: "localhost"
-    },
-    { url: "http://searcher-00.search.vps.maastricht:8080/search-service/Searcherv1",
-      name: "searcher-00.vps"
-    },
-    { url: "http://motest01.test.solute.ka:8080/search-service-trunk/Searcherv1",
-      name: "motest trunk"
-    },
-    { url: "http://motest01.test.solute.ka:8080/search-service-staging/Searcherv1",
-      name: "motest staging"
-    },
-    { url: "http://searcher-00.toi.api.maastricht:8080/search-service/Searcherv1",
-      name: "searcher-00.toi"
     }
 ];
 
-
-
-  App.Classes.Models = searchModels;
-  App.Classes.Views  = searchViews;
-
-  App.searchQuery = new App.Classes.Models.SearchQuery({app: App, searcherUrl: App.Config.Searchers[0].url});
-  App.searchResults = new App.Classes.Models.SearchResults();
-  App.searchFilters = new App.Classes.Models.SearchFilters();
-
-  var AppRouter = Backbone.Marionette.AppRouter.extend({
+  App.Router = Backbone.Marionette.AppRouter.extend({
     appRoutes: {
       "":     "showMain",
       "diff": "showDiff"
@@ -60,82 +40,37 @@ define(["backbone.bootstrap", "app.search.models", "app.search.views"], function
     template: "#navigation-template"
   });
 
-  App.Classes.Views.MainView = HandlebarsView.extend({
-    template: "#main-template",
 
-    subRegions: {
-      searchRegion:     "#searchView",
-      filterRegion:     "#filterView",
-      resultRegion:     "#resultView",
-      filterListRegion: "#filterListView"
-    },
-
-    initialize: function () {
-      this.searchView =     new App.Classes.Views.SearchView({model: App.searchQuery, app: App, searchers: App.Config.Searchers});
-      this.filterView =     new App.Classes.Views.FilterView({model: App.searchFilters, app: App});
-      this.resultView =     new App.Classes.Views.ResultsView({model: App.searchResults, app: App});
-      this.filterListView = new App.Classes.Views.FilterListView({model: App.searchFilters, app: App});
-
-      this.controller = _.extend({
-        onSearchSuccess: function (data, query) {
-          this.resultView.popupSearchResults(data, query);
-          App.searchResults.set(data);
-          App.searchFilters.setResultFilters(data);
-        },
-
-        onSearchFail: function (error, query) {
-          this.resultView.popupSearchError(error, query);
-        }
-      }, Backbone.Marionette.BindTo);
-    },
-
-    onShow: function () {
-      App.addRegions(this.subRegions);
-
-      App.searchRegion.show(this.searchView);
-      App.filterRegion.show(this.filterView);
-      App.filterListRegion.show(this.filterListView);
-      App.resultRegion.show(this.resultView);
-
-      this.controller.bindTo(App.vent, "search:success", this.controller.onSearchSuccess, this);
-      this.controller.bindTo(App.vent, "search:fail", this.controller.onSearchFail, this);
-    },
-
-    onClose: function () {
-      _.each(this.subRegions, function (v, k) {
-        App[k].close();
-      });
-
-      this.controller.unbindAll();
-    }
-  });
-
-  App.Views.mainView = new App.Classes.Views.MainView();
+  App.Views.mainView = new SearchMainView.MainView({ app: App, searchers: App.Config.Searchers });
+  App.Views.diffView = new CompareViews.CompareMainView({ app: App, searchers: App.Config.Searchers });
   App.Views.navigationView = new App.Classes.Views.NavigationView();
 
   App.addRegions({
     navigationRegion: ".navbar",
-    mainRegion:       "#main",
-    jsonDiffRegion:   "#jsonDiffView"
+    mainRegion:       "#main"
   });
 
   App.Controllers.routeController = {
     showMain: function () {
       App.mainRegion.show(App.Views.mainView);
+    },
+
+    showDiff: function () {
+      App.mainRegion.show(App.Views.diffView);
     }
   };
 
   App.addInitializer(function (options) {
     this.navigationRegion.show(this.Views.navigationView);
-
-    App.vent.proxy(App.searchQuery, "search:success", "search:fail", "search:start", "search:finish");
+    window.api = this.billigerApi = BilligerApi;
 
     /* create router */
-    this.Routers.appRouter = new AppRouter({controller: App.Controllers.routeController});
+    this.Routers.appRouter = new App.Router({controller: App.Controllers.routeController});
     if (Backbone.history) {
       Backbone.history.start();
     }
   });
 
+  window.App = App;
   return App;
 });

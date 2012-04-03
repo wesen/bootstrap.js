@@ -1,3 +1,50 @@
+Backbone.ModelBinding.Conventions.bootstrapButtons = {
+  selector: "a.btn",
+  handler: {
+    bind: function (selector, view, model, config) {
+      var modelBinder = this;
+
+      view.$(selector).each(function (index) {
+        var elt = view.$(this);
+        var attribute_name = $(elt).attr("name");
+
+        var modelChange = function (model, val) {
+          if (val) {
+            elt.addClass("active");
+          } else {
+            elt.removeClass("active");
+          }
+        };
+
+        var setModelValue = function (attr, value) {
+          var data = {};
+          data[attr] = value;
+          model.set(data);
+        };
+
+        var elementChange = function (ev) {
+          var changedElement = view.$(ev.target);
+          var active = changedElement.hasClass("active") ? true : false;
+          setModelValue(attribute_name, active);
+        }
+
+        modelBinder.registerModelBinding(model, attribute_name, modelChange);
+        elt.bind("toggle", elementChange);
+        modelBinder.elementBindings.push({element: elt, eventName: "toggle", callback: elementChange});
+
+        modelChange(model, model.get(attribute_name));
+      });
+    }
+  }
+};
+
+Backbone.Events.bindAll = Backbone.Model.prototype.bindAll = function (callbacks, context) {
+  var that = this;
+  _.each(callbacks, function (callback, event) {
+    that.on(event, callback, context);
+  });
+};
+
 /**
  * Override the backbone.marionette templatemanager to compile handlebars templates
  */

@@ -1,53 +1,58 @@
-define(function(require, exports, module) {
+define(["pagination"], function (Pagination) {
   /***************************************************************************
    *
    * Views
    *
    ***************************************************************************/
 
-  module.exports.SearchView = HandlebarsView.extend({
+  var SearchView = HandlebarsView.extend({
     template: "#search-template",
 
     initialize: function () {
       _.bindAll();
 
-      var that = this;
-      var timeout = undefined;
-
-      this.app.vent.bind("search:start",
-      function () {
-        clearTimeout(timeout);
-        var $bar = that.$(".bar");
-        $bar.width("50%").addClass("active");
-        $bar.parent().addClass("progress-striped active progress-info");
-        that.$("[name=search]").button("loading");
-      }).bind("search:finish", function () {
-        var $bar = that.$(".bar");
-        $bar.width("100%").removeClass("active");
-        $bar.parent().removeClass("progress-striped active").addClass("progress-info");
-        timeout = setTimeout(function () {
-          $bar.width("0%");
-        }, 2000);
-
-        that.$("[name=search]").button("reset");
-      });
+      this.timeout = undefined;
+      this.searchFilters = this.options.searchFilters;
+      this.searchers = this.options.searchers;
     },
 
     events: {
       "click [name=search]": "search",
-      "submit form":         "search",
-      "change [name=searcher]": "setSearcherUrl"
+      "submit form":         "search"
     },
 
-    setSearcherUrl: function (ev) {
-      var url = $(ev.target).find(":selected").data("searcher-url");
-      this.model.set({searcherUrl: url});
-      return false;
+    onSearchSuccess: function (data, query) {
+    },
+
+    onSearchError: function (error, query) {
+    },
+
+    onSearchStart: function (query) {
+      var that = this;
+
+      clearTimeout(this.timeout);
+      var $bar = that.$(".bar");
+      $bar.width("50%").addClass("active");
+      $bar.parent().addClass("progress-striped active progress-info");
+      that.$("[name=search]").button("loading");
+    },
+
+    onSearchFinish: function (query) {
+      var that = this;
+
+      var $bar = that.$(".bar");
+      $bar.width("100%").removeClass("active");
+      $bar.parent().removeClass("progress-striped active").addClass("progress-info");
+      this.timeout = setTimeout(function () {
+        $bar.width("0%");
+      }, 2000);
+
+      that.$("[name=search]").button("reset");
     },
 
     serializeData: function () {
       var json = this.model.toJSON();
-      json.searchers = _.map(this.options.searchers, function (searcher) {
+      json.searchers = _.map(this.searchers, function (searcher) {
         var res = _.clone(searcher);
         res.selected = json.searcherUrl === res.url;
         return res;
@@ -57,22 +62,9 @@ define(function(require, exports, module) {
     },
 
     search: function () {
-      var data = {
-        search_string: this.$("[name=search_string]").val()
-      };
-
-      this.$(".btn").each(function (idx, btn) {
-        var $btn = $(btn);
-        if ($btn.attr("name") !== "search") {
-          data[$btn.attr("name")] = $btn.hasClass("active");
-        }
-      });
-
-      data.searcherUrl = this.$("option[selected=selected]").data("searcher-url");
-      this.model.set(data);
-
-      this.app.searchFilters.resetFilters();
-      this.model.search(this.app.searchResults.get("selectedFilters"));
+      this.model.set({filters: []});
+      this.searchFilters.resetFilters();
+      this.model.search();
 
       return false;
     },
@@ -82,14 +74,18 @@ define(function(require, exports, module) {
     },
 
     onRender: function () {
+      this.unbindAll();
+
       this.delegateEvents();
       this.$(".btn-group").button();
       this.$("[name=search]").button();
       this.$("[rel=tooltip]").tooltip();
+
+      Backbone.ModelBinding.bind(this, {all: "name"});
     }
   });
 
-  module.exports.FilterView = HandlebarsView.extend({
+  var FilterView = HandlebarsView.extend({
     template: "#filters-template",
 
     cutoff: 10,
@@ -98,8 +94,9 @@ define(function(require, exports, module) {
       "click .filter": "toggleFilter"
     },
 
-    initialize: function () {
+    initialize: function (options) {
       _.bindAll(this);
+      this.searchQuery = this.options.searchQuery;
     },
 
     serializeData: function () {
@@ -125,9 +122,13 @@ define(function(require, exports, module) {
         $target.parent("li").addClass("active");
       }
 
-      var App = require("app");
-      App.searchQuery.search(this.model.get("selectedFilters"));
+      this.searchQuery.set({filters: this.model.get("selectedFilters")});
+      this.searchQuery.search();
       return false;
+    },
+
+    render: function () {
+      HandlebarsView.prototype.render.apply(this, arguments);
     },
 
     onRender: function () {
@@ -135,7 +136,7 @@ define(function(require, exports, module) {
     }
   });
 
-  module.exports.FilterListView = HandlebarsView.extend({
+  var FilterListView = HandlebarsView.extend({
     template: "#filter-list-template",
 
     events: {
@@ -144,6 +145,7 @@ define(function(require, exports, module) {
 
     initialize: function () {
       _.bindAll(this, "render", "deleteFilter");
+      this.searchQuery = this.options.searchQuery;
       this.model.unbind("change", this.render);
       this.model.bind("change:selectedFilters", this.render);
     },
@@ -153,7 +155,8 @@ define(function(require, exports, module) {
       var filterId = $target.data("filter-id");
       var valueId = "" + $target.data("value-id");
       this.model.unselectFilter(filterId, valueId);
-      this.app.searchQuery.search(this.model.get("selectedFilters"));
+      this.searchQuery.set({filters: this.model.get("selectedFilters")});
+      this.searchQuery.search();
     },
 
     serializeData: function () {
@@ -165,12 +168,11 @@ define(function(require, exports, module) {
     }
   });
 
-  module.exports.ResultsView = HandlebarsView.extend({
+  var ResultsView = HandlebarsView.extend({
     template: "#results-template",
 
     initialize: function () {
       _.bindAll(this);
-
     },
 
     popupSearchError: function (_error, query) {
@@ -194,6 +196,49 @@ define(function(require, exports, module) {
     },
 
     onRender: function () {
+//      this.$("[rel=popover]").popover();
     }
   });
+
+  var ResultsPaginationView = HandlebarsView.extend({
+    template: "#results-pagination-template",
+
+    events: {
+      "click a": "goPage"
+    },
+
+    initialize: function (options) {
+      this.searchQuery = options.searchQuery;
+      _.bindAll(this);
+    },
+
+    serializeData: function () {
+      var pagination = new Pagination({
+        currentPage: this.model.get("page_no") + 1,
+        perPage: this.model.get("page_size")
+      });
+      pagination.paginate(this.model.get("total_hits"));
+      var data = pagination.toJSON();
+      return data;
+    },
+
+    goPage: function (ev) {
+      var $target = this.$(ev.target);
+      var page = $target.data("page");
+
+      this.searchQuery.set({page_no: page - 1});
+      this.searchQuery.search();
+
+      return false;
+    }
+  });
+
+  return {
+    FilterListView: FilterListView,
+    ResultsView: ResultsView,
+    SearchView: SearchView,
+    FilterView: FilterView,
+    ResultsPaginationView: ResultsPaginationView
+  };
+
 });

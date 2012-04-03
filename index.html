@@ -18,6 +18,7 @@
       }
     </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="css/jsondiffpatch.html.css" rel="stylesheet">
   </head>
 
   <body>
@@ -48,6 +49,7 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="#">Home</a></li>
+              <li class="active"><a href="#diff">Diff</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -71,20 +73,105 @@
             <div id="resultView" class="span8">
             </div>
           </div>
+          <div class="row">
+            <div id="paginationView" class="span8">
+            </div>
+          </div>
         </div>
       </div>
     </script>
-    
+
+    <script id="diff-search-template" type="text/x-handlebars-template">
+      <form class="form-search well">
+        <fieldset>
+          <div class="control-group">
+            <input placeholder="Search..." type="text" name="search_string"
+                   class="search-query input-large" value="{{search_string}}"/>
+          </div>
+          <div class="control-group">
+            <select name="searcherUrl">
+              {{#each searchers}}
+              <option value="{{url}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="control-group">
+            <select name="searcherUrl2">
+              {{#each searchers}}
+              <option value="{{url}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
+              {{/each}}
+            </select>
+          </div>          <div class="control-group">
+            <input type="submit" style="width: 240px" class="btn btn-primary" name="search" value="Search!" data-loading-text="Searching..."/>
+          </div>
+          <hr/>
+          <div>
+            <div class="control-group">
+              <div class="btn-group"  data-toggle="buttons-checkbox">
+                <a rel="tooltip" title="search for products"
+                   name="output_product" class="btn {{#if output_product}}active{{/if}}">product</a>
+                <a rel="tooltip" title="search for offers"
+                   name="output_offer" class="btn {{#if output_offer}}active{{/if}}">offer</a>
+                <a rel="tooltip" title="search for didyoumean"
+                   name="output_didyoumean" class="btn {{#if output_didyoumean}}active{{/if}}">didyoumean</a>
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="btn-group"  data-toggle="buttons-checkbox">
+                <a rel="tooltip" title="search for categories"
+                   name="output_category" class="btn {{#if output_category}}active{{/if}}">category</a>
+                <a rel="tooltip" title="search for theme pages"
+                   name="output_theme_page" class="btn {{#if output_theme_page}}active{{/if}}">theme page</a>
+                <a rel="tooltip" title="search for product variants"
+                   name="output_product_variant" class="btn {{#if output_product_variant}}active{{/if}}">product variant</a>
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="btn-group" data-toggle="buttons-checkbox">
+                <a rel="tooltip" title="das hab ich immer noch nicht gerafft"
+                   name="collect_filters" class="btn {{#if collect_filters}}active{{/if}}">filters
+                </a>
+                <a rel="tooltip" title="das auch nicht"
+                   name="collect_filter_keys" class="btn {{#if collect_filter_keys}}active{{/if}}">filter keys
+                </a>
+                <a rel="tooltip" title="enable shop diversification"
+                   name="shopdiv" class="btn {{#if shopdiv}}active{{/if}}">shopdiv
+                </a>
+                <a rel="tooltip" title="enable fuzzy"
+                   name="fuzzy" class="btn {{#if fuzzy}}active{{/if}}">fuzzy
+                </a>
+              </div>
+            </div>
+            <div class="control-group">
+              <select name="sort">
+                <option value="relevance">relevance</option>
+                <option value="rating">rating</option>
+                <option value="clickout_relevance">clickout</option>
+                <option value="min_price">min_price</option>
+                <option value="price_rev">price_rev</option>
+              </select>
+            </div>
+
+          </div>
+        </fieldset>
+      </form>
+      <div class="progress progress-striped">
+        <div class="bar"
+             style="width: 0%;"></div>
+      </div>
+    </script>
+
     <script id="search-template" type="text/x-handlebars-template">
       <form class="form-search well">
         <fieldset>
           <div class="control-group">
-            <input placeholder="Search..." type="text" name="search_string" class="search-query input-large" value="{{search_string}}"/>
+            <input placeholder="Search..." type="text" name="search_string"
+                   class="search-query input-large" value="{{search_string}}"/>
           </div>
           <div class="control-group">
-            <select name="searcher">
+            <select name="searcherUrl">
               {{#each searchers}}
-              <option data-searcher-url="{{url}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
+              <option value="{{url}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
               {{/each}}
             </select>
           </div>
@@ -99,6 +186,8 @@
                         name="output_product" class="btn {{#if output_product}}active{{/if}}">product</a>
                 <a rel="tooltip" title="search for offers"
                         name="output_offer" class="btn {{#if output_offer}}active{{/if}}">offer</a>
+                <a rel="tooltip" title="search for didyoumean"
+                   name="output_didyoumean" class="btn {{#if output_didyoumean}}active{{/if}}">didyoumean</a>
               </div>
             </div>
             <div class="control-group">
@@ -119,15 +208,24 @@
                 <a rel="tooltip" title="das auch nicht"
                         name="collect_filter_keys" class="btn {{#if collect_filter_keys}}active{{/if}}">filter keys
                 </a>
-              </div>
-            </div>
-            <div class="control-group">
-              <div class="btn-group" data-toggle="buttons-checkbox">
                 <a rel="tooltip" title="enable shop diversification"
                         name="shopdiv" class="btn {{#if shopdiv}}active{{/if}}">shopdiv
                 </a>
+                <a rel="tooltip" title="enable fuzzy"
+                   name="fuzzy" class="btn {{#if fuzzy}}active{{/if}}">fuzzy
+                </a>
               </div>
             </div>
+            <div class="control-group">
+              <select name="sort">
+                <option value="relevance">relevance</option>
+                <option value="rating">rating</option>
+                <option value="clickout_relevance">clickout</option>
+                <option value="min_price">min_price</option>
+                <option value="price_rev">price_rev</option>
+              </select>
+            </div>
+
           </div>
         </fieldset>
       </form>
@@ -140,7 +238,7 @@
     <script id="filter-list-template" type="text/x-handlebars-template">
       <div class="btn-group">
       {{#each selectedFilters}}
-      <a class="filter btn" style="margin-bottom: 5px" data-filter-id="{{key}}" data-value-id="{{value}}">{{key}}: {{value}}</a>
+      <a class="filter btn" style="margin-bottom: 5px" data-filter-id="{{key}}" data-value-id="{{value}}">{{keyName}}: {{valueName}}</a>
       {{/each}}
       </div>
     </script>
@@ -149,9 +247,10 @@
       <h2>Filters</h2>
       <ul class="nav nav-list">
       {{#each filters}}
-        <li class="nav-header">{{key}} ({{count}})</li>
+        <li class="nav-header">{{keyName}} ({{count}})</li>
         {{#each values}}
-        <li {{#if selected}}class="active"{{/if}}><a data-filter-id="{{../key}}" data-value-id="{{value}}" class="filter" href="#">{{value}}
+        <li {{#if selected}}class="active"{{/if}}>
+        <a data-filter-id="{{../key}}" data-value-id="{{value}}" class="filter" href="#">{{valueName}}
         ({{count}})</a></li>
         {{/each}}
         {{#if truncated}}
@@ -165,16 +264,47 @@
       <div class="row">
         <div class="span8">
           <div class="page-header">
-            <h1>Results</h1>
+            <h1><a href="{{{searchUrl}}}&debug=1">Results</a></h1>
           </div>
 
+          {{#if debug.queries}}
+          <h3>Queries</h3>
+          {{#each debug.queries}}
+          <div><a data-toggle="collapse" href="#query-collapse-{{num}}">{{num}}. {{name}} ({{totalHits}} hits)</a></div>
+          <div class="collapse" id="query-collapse-{{num}}">
+            <p>
+              <em>Query:</em>{{query}}<br/>
+              <em>Filter:</em>{{filter}}<br/>
+            </p>
+          </div>
+          {{/each}}
+          {{/if}}
+
+          {{#if debug.categoryQueries}}
+          <h3>Category Queries</h3>
+          {{#each debug.categoryQueries}}
+          <div><a data-toggle="collapse" href="#categoryquery-collapse-{{num}}">{{num}}. {{name}} ({{totalHits}} hits)</a></div>
+          <div class="collapse" id="categoryquery-collapse-{{num}}">
+            <p>
+              <em>Query:</em>{{query}}<br/>
+              <em>Filter:</em>{{filter}}<br/>
+            </p>
+          </div>
+          {{/each}}
+          {{/if}}
+          
+          <p><br/></p>
+
           {{#if total_hits}}
-          Total hits: {{total_hits}}
           <table class="table table-bordered table-striped">
             <thead>
             <tr>
               <th>type</th>
               <th>id</th>
+              <th>name</th>
+              <th>category</th>
+              <th>brand</th>
+              <th>shop</th>
               <th>score</th>
             </tr>
             </thead>
@@ -183,18 +313,59 @@
             <tr>
               <td>{{type}}</td>
               <td>{{id}}</td>
+              <td><a href="#explain-{{docid}}" class="collapser" data-toggle="collapse">{{name}}</a></td>
+              <td>{{category}}</td>
+              <td>{{brand}}</td>
+              <td>{{shop}}</td>
               <td>{{score}}</td>
-
+            </tr>
+            <tr>
+              <td colspan="7"><div id="explain-{{docid}}" class="collapse">{{{explanation}}}</div></td>
             </tr>
             {{/each}}
             </tbody>
           </table>
+          Total hits: {{total_hits}}
           {{else}}
           No search hits.
           {{/if}}
 
         </div>
       </div>
+    </script>
+    
+    <script id="results-pagination-template" type="text/x-handlebars-template">
+      <div class="pagination" align="center">
+        {{#if hasHits}}
+        <ul>
+          <li {{#unless hasPrevious}}class="disabled"{{/unless}}><a data-page="{{prevPage}}" href="#">←</a></li>
+          {{#each pages}}
+          {{#if isPlaceHolder}}
+          <li class="disabled"><a href="#">...</a></li>
+          {{else}}
+          <li {{#if isSelected}}class="active"{{/if}}><a href="#" data-page="{{num}}">{{num}}</a></li>
+          {{/if}}
+          {{/each}}
+          <li {{#unless hasNext}}class="disabled"{{/unless}}><a href="#" data-page="{{nextPage}}">→</a></li>
+        </ul>
+        {{/if}}
+      </div>
+    </script>
+    
+    <script id="compare-results-template" type="text/x-handlebars-template">
+      <h2>Visual diff</h2>
+      {{#if diffHtml}}
+      Diff between
+      <ul>
+        <li><a href="{{{s1}}}">{{q1.searcherUrl}}</a></li>
+        <li><a href="{{{s2}}}">{{q2.searcherUrl}}</a></li>
+      </ul>
+      <div class="jsondiffpatch-visualdiff-root">
+        {{{diffHtml}}}
+      </div>
+      {{else}}
+      No Diff yet!
+      {{/if}}
     </script>
 
     <!-- Le javascript
@@ -206,6 +377,7 @@
     <script src="js/vendor/json2.js"></script>
     <script src="js/vendor/handlebars.js"></script>
     <script src="js/vendor/backbone.marionette.js"></script>
+    <script src="js/vendor/backbone.modelbinding.js"></script>
     <script src="js/vendor/bootstrap-transition.js"></script>
     <script src="js/vendor/bootstrap-alert.js"></script>
     <script src="js/vendor/bootstrap-modal.js"></script>
